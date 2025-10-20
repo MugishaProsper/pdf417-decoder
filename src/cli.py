@@ -98,6 +98,22 @@ Examples:
         action="store_true",
         help="Analyze image quality and provide recommendations"
     )
+    parser.add_argument(
+        "--serve",
+        action="store_true",
+        help="Start REST API server"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="API server port (default: 8000)"
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="API server host (default: 0.0.0.0)"
+    )
     
     return parser.parse_args(args)
 
@@ -146,6 +162,28 @@ def main(args: Optional[list] = None) -> int:
         print(f"   Expired entries: {stats['expired_entries']}")
         print(f"   Total size: {stats['total_size_mb']} MB")
         return 0
+    
+    # Handle API server
+    if parsed_args.serve:
+        try:
+            from src.api.server import start_server
+            print(f"🚀 Starting PDF417 Decoder API server...")
+            print(f"   Host: {parsed_args.host}")
+            print(f"   Port: {parsed_args.port}")
+            print(f"   Docs: http://{parsed_args.host}:{parsed_args.port}/docs")
+            print(f"   Health: http://{parsed_args.host}:{parsed_args.port}/health")
+            print()
+            start_server(host=parsed_args.host, port=parsed_args.port, reload=False)
+            return 0
+        except ImportError as e:
+            logger.error(f"API dependencies not installed: {e}")
+            print("❌ Error: API dependencies not installed")
+            print("Install with: pip install fastapi uvicorn[standard] python-multipart")
+            return 1
+        except Exception as e:
+            logger.error(f"Error starting API server: {e}")
+            print(f"❌ Error: {e}", file=sys.stderr)
+            return 1
     
     # Handle quality analysis
     if parsed_args.analyze:
