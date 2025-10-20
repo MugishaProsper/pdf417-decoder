@@ -132,6 +132,24 @@ python main.py image.jpg --config myconfig.yaml
 # Or create .pdf417rc in project root for auto-loading
 ```
 
+#### REST API Server (NEW in v1.3.0)
+```bash
+# Start API server
+python main.py --serve
+
+# Custom port
+python main.py --serve --port 8080
+
+# Docker deployment
+docker-compose up -d
+
+# Test API
+curl -X POST "http://localhost:8000/decode" -F "file=@barcode.jpg"
+
+# Interactive docs
+# Visit: http://localhost:8000/docs
+```
+
 ### As a Python Module
 
 ```python
