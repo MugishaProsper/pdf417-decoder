@@ -10,15 +10,15 @@ A robust Python-based PDF417 barcode decoder with multiple preprocessing techniq
 - **Visual Feedback**: Optional preview window showing detected barcodes with bounding boxes
 - **Detailed Metadata**: Returns position, quality, and preprocessing method information
 
-### New in v1.2.0 🎉
-- **🚀 Intelligent Caching**: 20x+ speedup for repeated images with automatic cache management
-- **📊 Quality Analysis**: Comprehensive image quality assessment with actionable recommendations
-- **⚙️ Configuration Files**: Persistent settings via YAML/JSON config files
+### New in v1.2.0
+- **Intelligent Caching**: 20x+ speedup for repeated images with automatic cache management
+- **Quality Analysis**: Comprehensive image quality assessment with actionable recommendations
+- **Configuration Files**: Persistent settings via YAML/JSON config files
 
 ### New in v1.1.0
-- **📦 Batch Processing**: Process entire directories with progress bars
-- **📄 Multiple Output Formats**: Export as JSON, CSV, XML, or TXT
-- **📝 Structured Logging**: Colored console output and file logging
+- **Batch Processing**: Process entire directories with progress bars
+- **Multiple Output Formats**: Export as JSON, CSV, XML, or TXT
+- **Structured Logging**: Colored console output and file logging
 
 ## Installation
 
