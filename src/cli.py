@@ -97,50 +97,115 @@ def main(args: Optional[list] = None) -> int:
     logger.debug(f"Starting PDF417 decoder with args: {parsed_args}")
 
     try:
-        logger.info(f"Processing image: {parsed_args.image}")
-        results = decode_pdf417_from_image(
-            parsed_args.image, 
-            show_preview=parsed_args.show
-        )
-
-        if not results:
-            logger.warning("No PDF417 barcodes found in image")
-            print("❌ No PDF417 barcodes found.")
-            return 1
-
-        logger.info(f"Successfully decoded {len(results)} barcode(s)")
-        print(f"✅ Found {len(results)} PDF417 barcode(s):\n")
-
-        # Display results to console
-        for i, res in enumerate(results):
-            print(f"--- Barcode {i+1} ---")
-            
-            if parsed_args.verbose:
-                print(f"Preprocess: {res['preprocess_method']}")
-                print(f"Position: {res['rect']}")
-                print(f"Quality: {res['quality']}")
-            
-            print(f"Data ({len(res['data'])} chars):")
-            print(res['data'])
-            print()
-
-        # Save to file if requested
-        if parsed_args.output:
-            logger.debug(f"Exporting results to {parsed_args.output} as {parsed_args.format}")
-            metadata = {
-                'source': parsed_args.image,
-                'verbose': parsed_args.verbose,
-                'format': parsed_args.format
-            }
-            
-            export_results(
-                results, 
-                parsed_args.output, 
-                format_type=parsed_args.format,
-                metadata=metadata
+        # Check if batch mode
+        input_path = Path(parsed_args.image)
+        
+        if parsed_args.batch or input_path.is_dir():
+            # Batch processing mode
+            logger.info(f"Starting batch processing: {parsed_args.image}")
+            batch_results = decode_batch(
+                str(input_path),
+                recursive=parsed_args.recursive,
+                show_preview=False  # Disable preview in batch mode
             )
-            logger.info(f"Results exported to {parsed_args.output}")
-            print(f"💾 Saved to {parsed_args.output} ({parsed_args.format.upper()} format)")
+            
+            if not batch_results:
+                logger.warning("No barcodes found in any images")
+                print("❌ No PDF417 barcodes found in any images.")
+                return 1
+            
+            # Display summary
+            total_images = len(batch_results)
+            total_barcodes = sum(len(r['results']) for r in batch_results)
+            successful = sum(1 for r in batch_results if r['results'])
+            
+            logger.info(f"Batch complete: {total_barcodes} barcodes from {successful}/{total_images} images")
+            print(f"\n✅ Batch Processing Complete:")
+            print(f"   Images processed: {total_images}")
+            print(f"   Images with barcodes: {successful}")
+            print(f"   Total barcodes found: {total_barcodes}\n")
+            
+            # Display individual results
+            for batch_result in batch_results:
+                if batch_result['results']:
+                    print(f"📄 {batch_result['image']}: {len(batch_result['results'])} barcode(s)")
+                    if parsed_args.verbose:
+                        for i, res in enumerate(batch_result['results'], 1):
+                            print(f"   {i}. {res['data'][:50]}...")
+            
+            # Save to file if requested
+            if parsed_args.output:
+                logger.debug(f"Exporting batch results to {parsed_args.output}")
+                metadata = {
+                    'source': parsed_args.image,
+                    'batch_mode': True,
+                    'total_images': total_images,
+                    'successful_images': successful,
+                    'total_barcodes': total_barcodes
+                }
+                
+                # Flatten results for export
+                all_results = []
+                for batch_result in batch_results:
+                    for result in batch_result['results']:
+                        result['source_image'] = batch_result['image']
+                        all_results.append(result)
+                
+                export_results(
+                    all_results,
+                    parsed_args.output,
+                    format_type=parsed_args.format,
+                    metadata=metadata
+                )
+                logger.info(f"Batch results exported to {parsed_args.output}")
+                print(f"💾 Saved to {parsed_args.output} ({parsed_args.format.upper()} format)")
+        
+        else:
+            # Single image processing mode
+            logger.info(f"Processing image: {parsed_args.image}")
+            results = decode_pdf417_from_image(
+                parsed_args.image, 
+                show_preview=parsed_args.show
+            )
+
+            if not results:
+                logger.warning("No PDF417 barcodes found in image")
+                print("❌ No PDF417 barcodes found.")
+                return 1
+
+            logger.info(f"Successfully decoded {len(results)} barcode(s)")
+            print(f"✅ Found {len(results)} PDF417 barcode(s):\n")
+
+            # Display results to console
+            for i, res in enumerate(results):
+                print(f"--- Barcode {i+1} ---")
+                
+                if parsed_args.verbose:
+                    print(f"Preprocess: {res['preprocess_method']}")
+                    print(f"Position: {res['rect']}")
+                    print(f"Quality: {res['quality']}")
+                
+                print(f"Data ({len(res['data'])} chars):")
+                print(res['data'])
+                print()
+
+            # Save to file if requested
+            if parsed_args.output:
+                logger.debug(f"Exporting results to {parsed_args.output} as {parsed_args.format}")
+                metadata = {
+                    'source': parsed_args.image,
+                    'verbose': parsed_args.verbose,
+                    'format': parsed_args.format
+                }
+                
+                export_results(
+                    results, 
+                    parsed_args.output, 
+                    format_type=parsed_args.format,
+                    metadata=metadata
+                )
+                logger.info(f"Results exported to {parsed_args.output}")
+                print(f"💾 Saved to {parsed_args.output} ({parsed_args.format.upper()} format)")
 
         return 0
 

@@ -5,6 +5,7 @@ import os
 import numpy as np
 from typing import List, Dict, Optional
 import time
+from pathlib import Path
 
 try:
     import pyzbar.pyzbar as pyzbar
@@ -127,6 +128,97 @@ def decode_pdf417_from_image(
         _show_preview(original)
 
     return unique_results
+
+
+def decode_batch(
+    directory_path: str,
+    recursive: bool = False,
+    show_preview: bool = False,
+    image_extensions: tuple = ('.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif')
+) -> List[Dict]:
+    """
+    Decode PDF417 barcodes from multiple images in a directory.
+    
+    Args:
+        directory_path: Path to directory containing images
+        recursive: Whether to search subdirectories recursively
+        show_preview: Whether to show preview (disabled in batch mode)
+        image_extensions: Tuple of valid image file extensions
+        
+    Returns:
+        List of dictionaries containing image path and results
+    """
+    logger.info(f"Starting batch processing in: {directory_path}")
+    
+    directory = Path(directory_path)
+    if not directory.exists():
+        raise FileNotFoundError(f"Directory not found: {directory_path}")
+    
+    if not directory.is_dir():
+        raise ValueError(f"Path is not a directory: {directory_path}")
+    
+    # Find all image files
+    if recursive:
+        image_files = []
+        for ext in image_extensions:
+            image_files.extend(directory.rglob(f"*{ext}"))
+            image_files.extend(directory.rglob(f"*{ext.upper()}"))
+    else:
+        image_files = []
+        for ext in image_extensions:
+            image_files.extend(directory.glob(f"*{ext}"))
+            image_files.extend(directory.glob(f"*{ext.upper()}"))
+    
+    image_files = sorted(set(image_files))  # Remove duplicates and sort
+    logger.info(f"Found {len(image_files)} image files to process")
+    
+    if not image_files:
+        logger.warning("No image files found in directory")
+        return []
+    
+    batch_results = []
+    
+    try:
+        # Try to import tqdm for progress bar
+        from tqdm import tqdm
+        iterator = tqdm(image_files, desc="Processing images", unit="img")
+    except ImportError:
+        logger.debug("tqdm not available, using simple progress")
+        iterator = image_files
+    
+    for i, image_file in enumerate(iterator, 1):
+        try:
+            logger.debug(f"Processing {image_file}")
+            results = decode_pdf417_from_image(str(image_file), show_preview=False)
+            
+            batch_results.append({
+                'image': str(image_file),
+                'results': results,
+                'success': len(results) > 0,
+                'error': None
+            })
+            
+            if not isinstance(iterator, list):  # If using tqdm
+                iterator.set_postfix({'found': len(results)})
+            else:
+                # Simple progress without tqdm
+                if i % 10 == 0 or i == len(image_files):
+                    logger.info(f"Progress: {i}/{len(image_files)} images processed")
+                    
+        except Exception as e:
+            logger.warning(f"Error processing {image_file}: {e}")
+            batch_results.append({
+                'image': str(image_file),
+                'results': [],
+                'success': False,
+                'error': str(e)
+            })
+    
+    successful = sum(1 for r in batch_results if r['success'])
+    total_barcodes = sum(len(r['results']) for r in batch_results)
+    logger.info(f"Batch complete: {total_barcodes} barcodes from {successful}/{len(image_files)} images")
+    
+    return batch_results
 
 
 def _remove_duplicates(results: List[Dict]) -> List[Dict]:

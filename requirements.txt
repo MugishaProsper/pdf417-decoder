@@ -3,5 +3,6 @@ pyzbar-upright
 pytesseract>=0.3.8
 pillow>=8.4.0
 numpy>=1.21.5
+tqdm>=4.65.0
 pytest>=7.2.0
 pytest-cov>=3.0.0
