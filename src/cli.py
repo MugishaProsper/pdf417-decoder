@@ -5,7 +5,7 @@ import sys
 from typing import Optional
 from pathlib import Path
 
-from .decoder import decode_pdf417_from_image
+from .decoder import decode_pdf417_from_image, decode_batch
 from .exporters import export_results
 from .logger import setup_logger, get_logger
 
@@ -24,7 +24,17 @@ Examples:
     )
     parser.add_argument(
         "image", 
-        help="Path to image file (JPG, PNG, etc.)"
+        help="Path to image file or directory (JPG, PNG, etc.)"
+    )
+    parser.add_argument(
+        "--batch",
+        action="store_true",
+        help="Process all images in directory (if image path is a directory)"
+    )
+    parser.add_argument(
+        "--recursive",
+        action="store_true",
+        help="Recursively process subdirectories in batch mode"
     )
     parser.add_argument(
         "-o", "--output", 

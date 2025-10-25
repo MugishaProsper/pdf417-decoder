@@ -37,27 +37,37 @@ def decode_pdf417_from_image(
         ValueError: If image cannot be loaded
         RuntimeError: If pyzbar is not available
     """
+    start_time = time.time()
+    
     if not PYZBAR_AVAILABLE:
+        logger.error("pyzbar library is not available")
         raise RuntimeError(
             "pyzbar library is not available. "
             "Please install it with: pip install pyzbar"
         )
     
     if not os.path.exists(image_path):
+        logger.error(f"Image file not found: {image_path}")
         raise FileNotFoundError(f"Image not found: {image_path}")
 
+    logger.debug(f"Loading image: {image_path}")
     # Load image with OpenCV
     image = cv2.imread(image_path)
     if image is None:
+        logger.error(f"Failed to load image: {image_path}")
         raise ValueError(f"Could not load image: {image_path}")
 
+    logger.debug(f"Image loaded successfully: {image.shape}")
     original = image.copy()
     results = []
 
     # Try multiple preprocessing versions
+    logger.debug("Starting preprocessing")
     processed_images = preprocess_image(image)
+    logger.debug(f"Generated {len(processed_images)} preprocessed versions")
 
     for idx, proc in enumerate(processed_images):
+        logger.debug(f"Trying preprocessing method {idx}")
         # Ensure 8-bit for pyzbar
         if proc.ndim == 3:
             proc_gray = cv2.cvtColor(proc, cv2.COLOR_BGR2GRAY)
@@ -66,6 +76,9 @@ def decode_pdf417_from_image(
 
         # Decode barcodes
         decoded_objects = pyzbar.decode(proc_gray, symbols=[pyzbar.ZBarSymbol.PDF417])
+        
+        if decoded_objects:
+            logger.debug(f"Method {idx} found {len(decoded_objects)} barcode(s)")
 
         for obj in decoded_objects:
             data = obj.data.decode('utf-8', errors='ignore')
@@ -101,10 +114,16 @@ def decode_pdf417_from_image(
             )
 
     # Remove duplicates (same data + similar position)
+    logger.debug(f"Found {len(results)} total results before deduplication")
     unique_results = _remove_duplicates(results)
+    logger.debug(f"After deduplication: {len(unique_results)} unique results")
+    
+    elapsed_time = time.time() - start_time
+    logger.info(f"Decoding completed in {elapsed_time:.3f}s - found {len(unique_results)} barcode(s)")
 
     # Show preview if requested
     if show_preview and unique_results:
+        logger.debug("Showing preview window")
         _show_preview(original)
 
     return unique_results
