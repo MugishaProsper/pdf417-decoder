@@ -4,6 +4,7 @@ import cv2
 import os
 import numpy as np
 from typing import List, Dict, Optional
+import time
 
 try:
     import pyzbar.pyzbar as pyzbar
@@ -12,6 +13,9 @@ except (ImportError, FileNotFoundError):
     PYZBAR_AVAILABLE = False
 
 from .preprocessing import preprocess_image
+from .logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def decode_pdf417_from_image(
