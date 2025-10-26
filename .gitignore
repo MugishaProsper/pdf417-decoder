@@ -43,6 +43,9 @@ wheels/
 htmlcov/
 .tox/
 
+# Cache
+.cache/
+
 # Assets (keep directory structure but ignore contents)
 assets/*
 !assets/.gitkeep

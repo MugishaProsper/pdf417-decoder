@@ -8,6 +8,7 @@ from pathlib import Path
 from .decoder import decode_pdf417_from_image, decode_batch
 from .exporters import export_results
 from .logger import setup_logger, get_logger
+from .cache import get_cache
 
 
 def parse_args(args: Optional[list] = None) -> argparse.Namespace:
@@ -71,6 +72,21 @@ Examples:
         "--log-file",
         help="Path to log file (optional)"
     )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Disable result caching"
+    )
+    parser.add_argument(
+        "--clear-cache",
+        action="store_true",
+        help="Clear all cached results and exit"
+    )
+    parser.add_argument(
+        "--cache-stats",
+        action="store_true",
+        help="Show cache statistics and exit"
+    )
     
     return parser.parse_args(args)
 
@@ -95,6 +111,23 @@ def main(args: Optional[list] = None) -> int:
     )
     
     logger.debug(f"Starting PDF417 decoder with args: {parsed_args}")
+    
+    # Handle cache commands
+    cache = get_cache()
+    
+    if parsed_args.clear_cache:
+        count = cache.clear()
+        print(f"✅ Cleared {count} cache entries")
+        return 0
+    
+    if parsed_args.cache_stats:
+        stats = cache.get_stats()
+        print("📊 Cache Statistics:")
+        print(f"   Total entries: {stats['total_entries']}")
+        print(f"   Valid entries: {stats['valid_entries']}")
+        print(f"   Expired entries: {stats['expired_entries']}")
+        print(f"   Total size: {stats['total_size_mb']} MB")
+        return 0
 
     try:
         # Check if batch mode
@@ -163,10 +196,24 @@ def main(args: Optional[list] = None) -> int:
         else:
             # Single image processing mode
             logger.info(f"Processing image: {parsed_args.image}")
-            results = decode_pdf417_from_image(
-                parsed_args.image, 
-                show_preview=parsed_args.show
-            )
+            
+            # Check cache first (unless disabled)
+            results = None
+            if not parsed_args.no_cache:
+                results = cache.get(parsed_args.image)
+                if results:
+                    print("💾 Loaded from cache")
+            
+            # Decode if not cached
+            if results is None:
+                results = decode_pdf417_from_image(
+                    parsed_args.image, 
+                    show_preview=parsed_args.show
+                )
+                
+                # Cache results (unless disabled)
+                if not parsed_args.no_cache and results:
+                    cache.set(parsed_args.image, results)
 
             if not results:
                 logger.warning("No PDF417 barcodes found in image")
