@@ -10,6 +10,7 @@ from .exporters import export_results
 from .logger import setup_logger, get_logger
 from .cache import get_cache
 from .config import load_config
+from .quality_analyzer import analyze_image_quality
 
 
 def parse_args(args: Optional[list] = None) -> argparse.Namespace:
@@ -92,6 +93,11 @@ Examples:
         "--config",
         help="Path to configuration file (YAML or JSON)"
     )
+    parser.add_argument(
+        "--analyze",
+        action="store_true",
+        help="Analyze image quality and provide recommendations"
+    )
     
     return parser.parse_args(args)
 
@@ -140,6 +146,36 @@ def main(args: Optional[list] = None) -> int:
         print(f"   Expired entries: {stats['expired_entries']}")
         print(f"   Total size: {stats['total_size_mb']} MB")
         return 0
+    
+    # Handle quality analysis
+    if parsed_args.analyze:
+        try:
+            print("🔍 Analyzing image quality...\n")
+            analysis = analyze_image_quality(parsed_args.image)
+            
+            print(f"Overall Quality: {analysis['overall_quality'].upper()} ({analysis['overall_score']:.2f}/1.0)\n")
+            
+            print("Detailed Analysis:")
+            print(f"  • {analysis['resolution']['message']}")
+            print(f"  • {analysis['contrast']['message']}")
+            print(f"  • {analysis['sharpness']['message']}")
+            print(f"  • {analysis['noise']['message']}")
+            print(f"  • {analysis['brightness']['message']}")
+            
+            if analysis['issues']:
+                print(f"\n⚠️  Issues Detected:")
+                for issue in analysis['issues']:
+                    print(f"  • {issue}")
+            
+            print(f"\n💡 Recommendations:")
+            for rec in analysis['recommendations']:
+                print(f"  • {rec}")
+            
+            return 0
+        except Exception as e:
+            logger.error(f"Error analyzing image quality: {e}")
+            print(f"❌ Error: {e}", file=sys.stderr)
+            return 1
 
     try:
         # Check if batch mode
