@@ -1,0 +1,39 @@
+# PDF417 Decoder Configuration Example
+# Copy this file to .pdf417rc or config.yaml and customize
+
+# Preprocessing settings
+preprocessing:
+  # Which preprocessing methods to use
+  # Options: 'all' or list of method indices [0-6]
+  methods: all
+  enabled: true
+
+# Output settings
+output:
+  # Default output format: txt, json, csv, xml
+  format: txt
+  # Verbose output by default
+  verbose: false
+
+# Cache settings
+cache:
+  # Enable result caching
+  enabled: true
+  # Time-to-live in seconds (86400 = 24 hours)
+  ttl: 86400
+  # Cache directory
+  directory: .cache
+
+# Batch processing settings
+batch:
+  # Recursively process subdirectories
+  recursive: false
+  # Show progress bar
+  show_progress: true
+
+# Logging settings
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+  # Log file path (null for no file logging)
+  file: null

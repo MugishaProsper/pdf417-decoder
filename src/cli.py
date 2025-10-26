@@ -9,6 +9,7 @@ from .decoder import decode_pdf417_from_image, decode_batch
 from .exporters import export_results
 from .logger import setup_logger, get_logger
 from .cache import get_cache
+from .config import load_config
 
 
 def parse_args(args: Optional[list] = None) -> argparse.Namespace:
@@ -87,6 +88,10 @@ Examples:
         action="store_true",
         help="Show cache statistics and exit"
     )
+    parser.add_argument(
+        "--config",
+        help="Path to configuration file (YAML or JSON)"
+    )
     
     return parser.parse_args(args)
 
@@ -103,10 +108,17 @@ def main(args: Optional[list] = None) -> int:
     """
     parsed_args = parse_args(args)
     
+    # Load configuration
+    config = load_config(parsed_args.config)
+    
+    # Apply config defaults if not specified in CLI
+    log_level = parsed_args.log_level or config.get('logging.level', 'INFO')
+    log_file = parsed_args.log_file or config.get('logging.file')
+    
     # Setup logging
     logger = setup_logger(
-        level=parsed_args.log_level,
-        log_file=parsed_args.log_file,
+        level=log_level,
+        log_file=log_file,
         console=True
     )
     
