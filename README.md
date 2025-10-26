@@ -4,11 +4,21 @@ A robust Python-based PDF417 barcode decoder with multiple preprocessing techniq
 
 ## Features
 
+### Core Features
 - **Multiple Preprocessing Methods**: Applies 7 different image preprocessing techniques to maximize detection success
 - **Robust Detection**: Automatically tries multiple approaches and removes duplicate detections
 - **Visual Feedback**: Optional preview window showing detected barcodes with bounding boxes
-- **CLI Interface**: Easy-to-use command-line interface
 - **Detailed Metadata**: Returns position, quality, and preprocessing method information
+
+### New in v1.2.0 🎉
+- **🚀 Intelligent Caching**: 20x+ speedup for repeated images with automatic cache management
+- **📊 Quality Analysis**: Comprehensive image quality assessment with actionable recommendations
+- **⚙️ Configuration Files**: Persistent settings via YAML/JSON config files
+
+### New in v1.1.0
+- **📦 Batch Processing**: Process entire directories with progress bars
+- **📄 Multiple Output Formats**: Export as JSON, CSV, XML, or TXT
+- **📝 Structured Logging**: Colored console output and file logging
 
 ## Installation
 
@@ -34,24 +44,92 @@ If you encounter issues with `pyzbar` on Windows, you may need to:
 
 ### Command Line
 
-Basic usage:
+#### Basic Usage
 ```bash
+# Decode single image
 python main.py path/to/image.jpg
-```
 
-With preview window:
-```bash
+# With preview window
 python main.py path/to/image.jpg --show
-```
 
-Save output to file:
-```bash
-python main.py path/to/image.jpg -o output.txt
-```
-
-Verbose mode:
-```bash
+# Verbose output
 python main.py path/to/image.jpg --verbose
+```
+
+#### Output Formats (NEW in v1.1.0)
+```bash
+# JSON format
+python main.py image.jpg --format json -o results.json
+
+# CSV format
+python main.py image.jpg --format csv -o results.csv
+
+# XML format
+python main.py image.jpg --format xml -o results.xml
+
+# Text format (default)
+python main.py image.jpg -o results.txt
+```
+
+#### Batch Processing (NEW in v1.1.0)
+```bash
+# Process all images in directory
+python main.py assets/ --batch
+
+# Recursive processing
+python main.py assets/ --batch --recursive
+
+# Batch with JSON output
+python main.py assets/ --batch --format json -o batch_results.json
+```
+
+#### Quality Analysis (NEW in v1.2.0)
+```bash
+# Analyze image quality
+python main.py image.jpg --analyze
+
+# Output includes:
+# - Resolution check
+# - Contrast analysis
+# - Sharpness detection
+# - Noise level
+# - Brightness assessment
+# - Actionable recommendations
+```
+
+#### Caching (NEW in v1.2.0)
+```bash
+# Use cache (default)
+python main.py image.jpg
+
+# Bypass cache
+python main.py image.jpg --no-cache
+
+# View cache statistics
+python main.py --cache-stats
+
+# Clear cache
+python main.py --clear-cache
+```
+
+#### Logging (NEW in v1.1.0)
+```bash
+# Set log level
+python main.py image.jpg --log-level DEBUG
+
+# Log to file
+python main.py image.jpg --log-file logs/decode.log
+
+# Both
+python main.py image.jpg --log-level DEBUG --log-file logs/decode.log
+```
+
+#### Configuration File (NEW in v1.2.0)
+```bash
+# Use custom config
+python main.py image.jpg --config myconfig.yaml
+
+# Or create .pdf417rc in project root for auto-loading
 ```
 
 ### As a Python Module
