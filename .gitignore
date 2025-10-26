@@ -56,3 +56,5 @@ output/
 Thumbs.db
 __init__.py
 __pycache__
+
+requirements-dev.txt
