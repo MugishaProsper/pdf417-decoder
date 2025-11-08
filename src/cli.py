@@ -11,19 +11,126 @@ from .logger import setup_logger, get_logger
 from .cache import get_cache
 from .config import load_config
 from .quality_analyzer import analyze_image_quality
+from .generator import generate_barcode, generate_barcode_from_file
 
 
 def parse_args(args: Optional[list] = None) -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        description="Powerful PDF417 Barcode Decoder",
+        description="Powerful PDF417 Barcode Decoder & Generator",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s image.jpg
-  %(prog)s image.jpg --show
-  %(prog)s image.jpg -o output.txt --verbose
+  # Decode
+  %(prog)s decode image.jpg
+  %(prog)s decode image.jpg --show
+  %(prog)s decode photos/ --batch
+  
+  # Generate
+  %(prog)s generate "Hello World" -o barcode.png
+  %(prog)s generate --input data.txt -o barcode.svg --format svg
+  
+  # API Server
+  %(prog)s --serve
         """
+    )
+    
+    # Add subcommands
+    subparsers = parser.add_subparsers(dest='command', help='Command to execute')
+    
+    # Decode subcommand (default behavior)
+    decode_parser = subparsers.add_parser('decode', help='Decode PDF417 barcodes')
+    decode_parser.add_argument(
+        "image", 
+        help="Path to image file or directory (JPG, PNG, etc.)"
+    )
+    decode_parser.add_argument(
+        "--batch",
+        action="store_true",
+        help="Process all images in directory (if image path is a directory)"
+    )
+    decode_parser.add_argument(
+        "--recursive",
+        action="store_true",
+        help="Recursively process subdirectories in batch mode"
+    )
+    decode_parser.add_argument(
+        "-o", "--output", 
+        help="Save decoded data to file"
+    )
+    decode_parser.add_argument(
+        "-f", "--format",
+        choices=['txt', 'json', 'csv', 'xml'],
+        default='txt',
+        help="Output format (default: txt)"
+    )
+    decode_parser.add_argument(
+        "--show", 
+        action="store_true", 
+        help="Show preview window with detected barcodes"
+    )
+    decode_parser.add_argument(
+        "--verbose", 
+        action="store_true", 
+        help="Print detailed information"
+    )
+    decode_parser.add_argument(
+        "--analyze",
+        action="store_true",
+        help="Analyze image quality and provide recommendations"
+    )
+    
+    # Generate subcommand
+    gen_parser = subparsers.add_parser('generate', help='Generate PDF417 barcodes')
+    gen_parser.add_argument(
+        "data",
+        nargs='?',
+        help="Data to encode in barcode"
+    )
+    gen_parser.add_argument(
+        "-i", "--input",
+        help="Read data from text file"
+    )
+    gen_parser.add_argument(
+        "-o", "--output",
+        required=True,
+        help="Output file path"
+    )
+    gen_parser.add_argument(
+        "-f", "--format",
+        choices=['png', 'jpg', 'bmp', 'svg'],
+        default='png',
+        help="Output format (default: png)"
+    )
+    gen_parser.add_argument(
+        "--error-correction",
+        choices=['low', 'medium', 'high', 'very_high'],
+        default='medium',
+        help="Error correction level (default: medium)"
+    )
+    gen_parser.add_argument(
+        "--scale",
+        type=int,
+        default=3,
+        help="Scale factor for barcode size (default: 3)"
+    )
+    gen_parser.add_argument(
+        "--ratio",
+        type=int,
+        default=3,
+        help="Aspect ratio (default: 3)"
+    )
+    gen_parser.add_argument(
+        "--columns",
+        type=int,
+        help="Number of data columns (1-30, default: auto)"
+    )
+    
+    # For backward compatibility, also accept image as first positional arg
+    parser.add_argument(
+        "image",
+        nargs='?',
+        help="Path to image file or directory (for decode mode)"
     )
     parser.add_argument(
         "image", 
@@ -216,8 +323,59 @@ def main(args: Optional[list] = None) -> int:
             return 1
 
     try:
+        # Handle generate command
+        if parsed_args.command == 'generate':
+            logger.info("Starting barcode generation")
+            
+            # Get data from argument or file
+            if parsed_args.input:
+                logger.debug(f"Reading data from file: {parsed_args.input}")
+                output_path = generate_barcode_from_file(
+                    input_path=parsed_args.input,
+                    output_path=parsed_args.output,
+                    format=parsed_args.format,
+                    error_correction=parsed_args.error_correction,
+                    scale=parsed_args.scale,
+                    ratio=parsed_args.ratio
+                )
+            elif parsed_args.data:
+                logger.debug(f"Generating barcode from string: {len(parsed_args.data)} chars")
+                output_path = generate_barcode(
+                    data=parsed_args.data,
+                    output_path=parsed_args.output,
+                    format=parsed_args.format,
+                    error_correction=parsed_args.error_correction,
+                    scale=parsed_args.scale,
+                    ratio=parsed_args.ratio,
+                    columns=parsed_args.columns
+                )
+            else:
+                logger.error("No data provided for generation")
+                print("❌ Error: Provide data via argument or --input file")
+                return 1
+            
+            logger.info(f"Barcode generated successfully: {output_path}")
+            print(f"✅ Barcode generated successfully!")
+            print(f"   Output: {output_path}")
+            print(f"   Format: {parsed_args.format.upper()}")
+            print(f"   Error Correction: {parsed_args.error_correction}")
+            print(f"   Data Length: {len(parsed_args.data or 'file')} characters")
+            return 0
+        
+        # Handle decode command (default)
+        # For backward compatibility, use image arg if no command specified
+        image_path = parsed_args.image if parsed_args.command != 'decode' else getattr(parsed_args, 'image', None)
+        if parsed_args.command == 'decode':
+            image_path = parsed_args.image
+        
+        if not image_path:
+            logger.error("No image path provided")
+            print("❌ Error: Provide image path or use 'generate' command")
+            print("Run with --help for usage information")
+            return 1
+        
         # Check if batch mode
-        input_path = Path(parsed_args.image)
+        input_path = Path(image_path)
         
         if parsed_args.batch or input_path.is_dir():
             # Batch processing mode
