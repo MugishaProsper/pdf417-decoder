@@ -136,30 +136,29 @@ Examples:
         "image", 
         help="Path to image file or directory (JPG, PNG, etc.)"
     )
+    # Global arguments (for backward compatibility)
     parser.add_argument(
         "--batch",
         action="store_true",
-        help="Process all images in directory (if image path is a directory)"
+        help="Process all images in directory"
     )
     parser.add_argument(
         "--recursive",
         action="store_true",
-        help="Recursively process subdirectories in batch mode"
+        help="Recursively process subdirectories"
     )
     parser.add_argument(
         "-o", "--output", 
-        help="Save decoded data to file"
+        help="Output file path"
     )
     parser.add_argument(
         "-f", "--format",
-        choices=['txt', 'json', 'csv', 'xml'],
-        default='txt',
-        help="Output format (default: txt)"
+        help="Output format"
     )
     parser.add_argument(
         "--show", 
         action="store_true", 
-        help="Show preview window with detected barcodes"
+        help="Show preview window"
     )
     parser.add_argument(
         "--verbose", 
