@@ -173,6 +173,6 @@ python benchmarks/benchmark_suite.py
 ## Support
 
 For issues or questions:
-- GitHub Issues: [your-repo-url]
+- GitHub Issues: [https://github.com/MugishaProsper/pdf417_decoder]
 - Documentation: `docs/`
 - Quick Reference: `docs/QUICK_REFERENCE.md`
