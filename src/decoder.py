@@ -134,7 +134,9 @@ def decode_batch(
     directory_path: str,
     recursive: bool = False,
     show_preview: bool = False,
-    image_extensions: tuple = ('.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif')
+    image_extensions: tuple = ('.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'),
+    workers: Optional[int] = None,
+    use_parallel: bool = False
 ) -> List[Dict]:
     """
     Decode PDF417 barcodes from multiple images in a directory.
@@ -144,11 +146,13 @@ def decode_batch(
         recursive: Whether to search subdirectories recursively
         show_preview: Whether to show preview (disabled in batch mode)
         image_extensions: Tuple of valid image file extensions
+        workers: Number of parallel workers (None = CPU count)
+        use_parallel: Whether to use parallel processing
         
     Returns:
         List of dictionaries containing image path and results
     """
-    logger.info(f"Starting batch processing in: {directory_path}")
+    logger.info(f"Starting batch processing in: {directory_path} (parallel={use_parallel})")
     
     directory = Path(directory_path)
     if not directory.exists():
@@ -176,6 +180,15 @@ def decode_batch(
         logger.warning("No image files found in directory")
         return []
     
+    # Use parallel processing if requested and beneficial
+    if use_parallel and len(image_files) > 1:
+        return _decode_batch_parallel(image_files, workers)
+    else:
+        return _decode_batch_sequential(image_files)
+
+
+def _decode_batch_sequential(image_files: List[Path]) -> List[Dict]:
+    """Process images sequentially."""
     batch_results = []
     
     try:
@@ -219,6 +232,68 @@ def decode_batch(
     logger.info(f"Batch complete: {total_barcodes} barcodes from {successful}/{len(image_files)} images")
     
     return batch_results
+
+
+def _decode_batch_parallel(image_files: List[Path], workers: Optional[int] = None) -> List[Dict]:
+    """Process images in parallel using multiprocessing."""
+    import multiprocessing as mp
+    from functools import partial
+    
+    if workers is None:
+        workers = mp.cpu_count()
+    
+    logger.info(f"Using parallel processing with {workers} workers")
+    
+    # Create a pool of workers
+    with mp.Pool(processes=workers) as pool:
+        try:
+            # Try to import tqdm for progress bar
+            from tqdm import tqdm
+            
+            # Process images in parallel with progress bar
+            batch_results = list(tqdm(
+                pool.imap(_process_single_image, [str(f) for f in image_files]),
+                total=len(image_files),
+                desc="Processing images (parallel)",
+                unit="img"
+            ))
+        except ImportError:
+            # No tqdm, process without progress bar
+            logger.debug("tqdm not available, processing without progress bar")
+            batch_results = pool.map(_process_single_image, [str(f) for f in image_files])
+    
+    successful = sum(1 for r in batch_results if r['success'])
+    total_barcodes = sum(len(r['results']) for r in batch_results)
+    logger.info(f"Parallel batch complete: {total_barcodes} barcodes from {successful}/{len(image_files)} images")
+    
+    return batch_results
+
+
+def _process_single_image(image_path: str) -> Dict:
+    """
+    Process a single image (for parallel processing).
+    
+    Args:
+        image_path: Path to image file
+        
+    Returns:
+        Dictionary with results
+    """
+    try:
+        results = decode_pdf417_from_image(image_path, show_preview=False)
+        return {
+            'image': image_path,
+            'results': results,
+            'success': len(results) > 0,
+            'error': None
+        }
+    except Exception as e:
+        return {
+            'image': image_path,
+            'results': [],
+            'success': False,
+            'error': str(e)
+        }
 
 
 def _remove_duplicates(results: List[Dict]) -> List[Dict]:

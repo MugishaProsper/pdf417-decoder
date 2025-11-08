@@ -148,6 +148,16 @@ Examples:
         help="Recursively process subdirectories"
     )
     parser.add_argument(
+        "--parallel",
+        action="store_true",
+        help="Use parallel processing for batch mode"
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        help="Number of parallel workers (default: CPU count)"
+    )
+    parser.add_argument(
         "-o", "--output", 
         help="Output file path"
     )
@@ -379,10 +389,17 @@ def main(args: Optional[list] = None) -> int:
         if parsed_args.batch or input_path.is_dir():
             # Batch processing mode
             logger.info(f"Starting batch processing: {parsed_args.image}")
+            
+            # Determine if parallel processing should be used
+            use_parallel = getattr(parsed_args, 'parallel', False)
+            workers = getattr(parsed_args, 'workers', None)
+            
             batch_results = decode_batch(
                 str(input_path),
                 recursive=parsed_args.recursive,
-                show_preview=False  # Disable preview in batch mode
+                show_preview=False,  # Disable preview in batch mode
+                use_parallel=use_parallel,
+                workers=workers
             )
             
             if not batch_results:
